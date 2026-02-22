@@ -22,4 +22,3 @@ fi
 
 # No connection
 echo "❌ Offline"
-^

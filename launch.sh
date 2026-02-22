@@ -12,4 +12,3 @@ polybar top &
 polybar mybar &
 
 echo "Polybar launched..."
-Replacing i3bar with polybar

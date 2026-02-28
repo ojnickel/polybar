@@ -76,7 +76,16 @@ case "$TREND" in
 esac
 
 if [[ -n "$VALUE" ]]; then
-    echo "${VALUE} ${ARROW}"
+    # Background color by glucose level
+    if   (( VALUE <= 60 )); then  BG="%{B#aa0000}"   # way too low - red
+    elif (( VALUE <= 80 )); then  BG="%{B#aa6600}"   # low warning - orange
+    elif (( VALUE <= 99 )); then  BG="%{B#666600}"   # minor warning - yellow-ish
+    elif (( VALUE <= 180 )); then BG="%{B#006600}"   # normal - green
+    elif (( VALUE <= 199 )); then BG="%{B#666600}"   # high warning - yellow-ish
+    elif (( VALUE <= 250 )); then BG="%{B#aa6600}"   # high - orange
+    else                          BG="%{B#aa0000}"   # way too high - red
+    fi
+    echo "${BG} ${VALUE} ${ARROW} %{B-}"
 else
     echo "n/a"
 fi

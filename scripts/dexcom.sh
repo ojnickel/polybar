@@ -1,91 +1,55 @@
 #!/bin/bash
 
-# Dexcom Share API (OUS / Europe)
-# Reads credentials from ~/.dex (format: username:password)
-# Requires Dexcom Share enabled with at least one follower
+# Dexcom polybar module - shows glucose with live-counting age timer
+# Fetches from API every 5 min, updates display every second
 
-DEX_FILE="$HOME/.dex"
+CACHE_FILE="/tmp/dex_cache"
+FETCH_SCRIPT="$HOME/.config/polybar/scripts/dexcom-fetch.sh"
 
-if [[ ! -f "$DEX_FILE" ]]; then
-    echo "no ~/.dex"
-    exit 0
+# Refresh cache if missing or older than 5 min
+if [[ ! -f "$CACHE_FILE" ]] || [[ $(( $(date +%s) - $(stat -c %Y "$CACHE_FILE") )) -gt 300 ]]; then
+    bash "$FETCH_SCRIPT" &>/dev/null
 fi
 
-IFS=':' read -r USERNAME PASSWORD < "$DEX_FILE"
-
-if [[ -z "$USERNAME" || -z "$PASSWORD" ]]; then
-    echo "bad ~/.dex"
-    exit 0
-fi
-
-BASE_URL="https://shareous1.dexcom.com/ShareWebServices/Services"
-APP_ID="d89443d2-327c-4a6f-89e5-496bbb0317db"
-
-# Build JSON payloads safely (password may contain special chars)
-json_auth=$(python3 -c "import json,sys; print(json.dumps({'accountName':sys.argv[1],'password':sys.argv[2],'applicationId':sys.argv[3]}))" "$USERNAME" "$PASSWORD" "$APP_ID")
-
-# Step 1: Authenticate to get account ID
-ACCOUNT_ID=$(curl -sf -X POST \
-    -H "Content-Type: application/json" \
-    -d "$json_auth" \
-    "$BASE_URL/General/AuthenticatePublisherAccount" | tr -d '"')
-
-if [[ -z "$ACCOUNT_ID" || "$ACCOUNT_ID" == "00000000-0000-0000-0000-000000000000" ]]; then
-    echo "auth fail"
-    exit 0
-fi
-
-# Step 2: Login with account ID to get session ID
-json_login=$(python3 -c "import json,sys; print(json.dumps({'accountId':sys.argv[1],'password':sys.argv[2],'applicationId':sys.argv[3]}))" "$ACCOUNT_ID" "$PASSWORD" "$APP_ID")
-
-SESSION_ID=$(curl -sf -X POST \
-    -H "Content-Type: application/json" \
-    -d "$json_login" \
-    "$BASE_URL/General/LoginPublisherAccountById" | tr -d '"')
-
-if [[ -z "$SESSION_ID" || "$SESSION_ID" == "00000000-0000-0000-0000-000000000000" ]]; then
-    echo "login fail"
-    exit 0
-fi
-
-# Step 3: Get latest glucose reading
-RESPONSE=$(curl -sf -X POST \
-    -H "Content-Type: application/json" \
-    -d "[]" \
-    "$BASE_URL/Publisher/ReadPublisherLatestGlucoseValues?sessionId=$SESSION_ID&minutes=1440&maxCount=1")
-
-if [[ -z "$RESPONSE" || "$RESPONSE" == "[]" ]]; then
+if [[ ! -f "$CACHE_FILE" ]]; then
     echo "n/a"
     exit 0
 fi
 
-# Parse value and trend from JSON
-VALUE=$(echo "$RESPONSE" | grep -oP '"Value"\s*:\s*\K[0-9]+' | head -1)
-TREND=$(echo "$RESPONSE" | grep -oP '"Trend"\s*:\s*"\K[^"]+' | head -1)
+read -r VALUE TREND EPOCH_MS < "$CACHE_FILE"
+
+if [[ -z "$VALUE" ]]; then
+    echo "n/a"
+    exit 0
+fi
+
+# Calculate age
+NOW_MS=$(date +%s%3N)
+AGE_SEC=$(( (NOW_MS - EPOCH_MS) / 1000 ))
+AGE_MIN=$(( AGE_SEC / 60 ))
+AGE_REM=$(( AGE_SEC % 60 ))
+AGE=$(printf '%d:%02d' "$AGE_MIN" "$AGE_REM")
 
 # Trend arrows
 case "$TREND" in
-    DoubleUp)       ARROW="⇈" ;;
-    SingleUp)       ARROW="↑" ;;
-    FortyFiveUp)    ARROW="↗" ;;
-    Flat)           ARROW="→" ;;
-    FortyFiveDown)  ARROW="↘" ;;
-    SingleDown)     ARROW="↓" ;;
-    DoubleDown)     ARROW="⇊" ;;
+    DoubleUp)       ARROW="󱖗" ;;
+    SingleUp)       ARROW="󱖗" ;;
+    FortyFiveUp)    ARROW="󱖔" ;;
+    Flat)           ARROW="󱖘" ;;
+    FortyFiveDown)  ARROW="󱖕" ;;
+    SingleDown)     ARROW="󰳜" ;;
+    DoubleDown)     ARROW="󰳜" ;;
     *)              ARROW="" ;;
 esac
 
-if [[ -n "$VALUE" ]]; then
-    # Background color by glucose level
-    if   (( VALUE <= 60 )); then  BG="%{B#aa0000}"   # way too low - red
-    elif (( VALUE <= 80 )); then  BG="%{B#aa6600}"   # low warning - orange
-    elif (( VALUE <= 99 )); then  BG="%{B#666600}"   # minor warning - yellow-ish
-    elif (( VALUE <= 180 )); then BG="%{B#006600}"   # normal - green
-    elif (( VALUE <= 199 )); then BG="%{B#666600}"   # high warning - yellow-ish
-    elif (( VALUE <= 250 )); then BG="%{B#aa6600}"   # high - orange
-    else                          BG="%{B#aa0000}"   # way too high - red
-    fi
-    echo "${BG} ${VALUE} ${ARROW} %{B-}"
-else
-    echo "n/a"
+# Background color by glucose level
+if   (( VALUE <= 60 )); then  BG="%{B#aa0000}"
+elif (( VALUE <= 80 )); then  BG="%{B#aa6600}"
+elif (( VALUE <= 99 )); then  BG="%{B#666600}"
+elif (( VALUE <= 180 )); then BG="%{B#006600}"
+elif (( VALUE <= 199 )); then BG="%{B#666600}"
+elif (( VALUE <= 250 )); then BG="%{B#aa6600}"
+else                          BG="%{B#aa0000}"
 fi
+
+echo "${BG} ${VALUE} ${ARROW} ${AGE} %{B-}"

@@ -32,13 +32,13 @@ AGE=$(printf '%d:%02d' "$AGE_MIN" "$AGE_REM")
 
 # Trend arrows
 case "$TREND" in
-    DoubleUp)       ARROW="󱖗" ;;
-    SingleUp)       ARROW="󱖗" ;;
-    FortyFiveUp)    ARROW="󱖔" ;;
-    Flat)           ARROW="󱖘" ;;
-    FortyFiveDown)  ARROW="󱖕" ;;
-    SingleDown)     ARROW="󰳜" ;;
-    DoubleDown)     ARROW="󰳜" ;;
+    DoubleUp)       ARROW="󰁞" ;;
+    SingleUp)       ARROW="󰁞" ;;
+    FortyFiveUp)    ARROW="󰧆" ;;
+    Flat)           ARROW="󰁕" ;;
+    FortyFiveDown)  ARROW="󰦺" ;;
+    SingleDown)     ARROW="󰁆" ;;
+    DoubleDown)     ARROW="󰁆" ;;
     *)              ARROW="" ;;
 esac
 

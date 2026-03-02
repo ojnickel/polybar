@@ -2,6 +2,10 @@
 
 # Dexcom polybar module - shows glucose with live-counting age timer
 # Fetches from API every 5 min, updates display every second
+# Usage: dexcom.sh [--no-time]
+
+SHOW_TIME=true
+[[ "$1" == "--no-time" ]] && SHOW_TIME=false
 
 CACHE_FILE="/tmp/dex_cache"
 FETCH_SCRIPT="$HOME/.config/polybar/scripts/dexcom-fetch.sh"
@@ -16,7 +20,7 @@ if [[ ! -f "$CACHE_FILE" ]]; then
     exit 0
 fi
 
-read -r VALUE TREND EPOCH_MS < "$CACHE_FILE"
+read -r VALUE TREND EPOCH_MS PREV_VALUE < "$CACHE_FILE"
 
 if [[ -z "$VALUE" ]]; then
     echo "n/a"
@@ -43,13 +47,31 @@ case "$TREND" in
 esac
 
 # Background color by glucose level
-if   (( VALUE <= 60 )); then  BG="%{B#aa0000}"
-elif (( VALUE <= 80 )); then  BG="%{B#aa6600}"
-elif (( VALUE <= 99 )); then  BG="%{B#666600}"
-elif (( VALUE <= 180 )); then BG="%{B#006600}"
-elif (( VALUE <= 199 )); then BG="%{B#666600}"
-elif (( VALUE <= 250 )); then BG="%{B#aa6600}"
-else                          BG="%{B#aa0000}"
+if   (( VALUE <= 60 )); then  CLR="#aa0000"
+elif (( VALUE <= 80 )); then  CLR="#aa6600"
+elif (( VALUE <= 99 )); then  CLR="#666600"
+elif (( VALUE <= 180 )); then CLR="#006600"
+elif (( VALUE <= 199 )); then CLR="#666600"
+elif (( VALUE <= 250 )); then CLR="#aa6600"
+else                          CLR="#aa0000"
 fi
 
-echo "${BG} ${VALUE} ${ARROW} ${AGE} %{B-}"
+# Difference from previous reading
+DIFF=$(( VALUE - ${PREV_VALUE:-$VALUE} ))
+if (( DIFF > 0 )); then
+    DIFF_STR="+${DIFF}"
+elif (( DIFF == 0 )); then
+    DIFF_STR="0"
+else
+    DIFF_STR="${DIFF}"
+fi
+
+# Rounded corners using powerline glyphs
+L="%{T5}%{F${CLR}}%{F-}%{T-}"
+R="%{T5}%{F${CLR}}%{F-}%{T-}"
+
+if $SHOW_TIME; then
+    echo "${L}%{B${CLR}} ${VALUE} ${ARROW} ${DIFF_STR} ${AGE} %{B-}${R}"
+else
+    echo "${L}%{B${CLR}} ${VALUE} ${ARROW} ${DIFF_STR} %{B-}${R}"
+fi

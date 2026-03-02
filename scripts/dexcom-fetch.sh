@@ -35,16 +35,17 @@ if [[ -z "$SESSION_ID" || "$SESSION_ID" == "00000000-0000-0000-0000-000000000000
     exit 1
 fi
 
-RESPONSE=$(curl -sf -X POST     -H "Content-Type: application/json"     -d "[]"     "$BASE_URL/Publisher/ReadPublisherLatestGlucoseValues?sessionId=$SESSION_ID&minutes=1440&maxCount=1")
+RESPONSE=$(curl -sf -X POST     -H "Content-Type: application/json"     -d "[]"     "$BASE_URL/Publisher/ReadPublisherLatestGlucoseValues?sessionId=$SESSION_ID&minutes=1440&maxCount=2")
 
 if [[ -z "$RESPONSE" || "$RESPONSE" == "[]" ]]; then
     exit 1
 fi
 
 VALUE=$(echo "$RESPONSE" | grep -oP '"Value"\s*:\s*\K[0-9]+' | head -1)
+PREV_VALUE=$(echo "$RESPONSE" | grep -oP '"Value"\s*:\s*\K[0-9]+' | sed -n '2p')
 TREND=$(echo "$RESPONSE" | grep -oP '"Trend"\s*:\s*"\K[^"]+'  | head -1)
 EPOCH_MS=$(echo "$RESPONSE" | grep -oP '"Date\(\K[0-9]+' | head -1)
 
 if [[ -n "$VALUE" && -n "$EPOCH_MS" ]]; then
-    echo "$VALUE $TREND $EPOCH_MS" > "$CACHE_FILE"
+    echo "$VALUE $TREND $EPOCH_MS ${PREV_VALUE:-$VALUE}" > "$CACHE_FILE"
 fi

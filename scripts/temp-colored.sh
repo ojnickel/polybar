@@ -30,4 +30,4 @@ else
 fi
 
 #dd Output formatted with padding and background (pill shape)
-echo "%{B$bg}%{F#ddffffff}  $icon ${temp}°C  %{B-}%{F-}"
+echo "%{T5}%{F$bg}%{F-}%{T-}%{B$bg}%{F#ddffffff} $icon ${temp}°C %{B-}%{F-}%{T5}%{F$bg}%{F-}%{T-}"

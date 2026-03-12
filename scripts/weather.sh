@@ -27,7 +27,7 @@ if [[ -n "$response" ]]; then
   icon_code=$(echo "$response" | jq -r '.weather[0].icon')
   temp=$(echo "$response" | jq -r '.main.temp' | cut -d. -f1)
   icon=$(get_icon "$icon_code")
-  echo "$icon ${temp}°C"
+  echo "%{T5}%{F#44112255}%{F-}%{T-}%{B#44112255} $icon ${temp}°C %{B-}%{T5}%{F#44112255}%{F-}%{T-}"
 else
   echo " n/a"
 fi

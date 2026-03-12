@@ -71,7 +71,7 @@ L="%{T5}%{F${CLR}}%{F-}%{T-}"
 R="%{T5}%{F${CLR}}%{F-}%{T-}"
 
 if $SHOW_TIME; then
-    echo "${L}%{B${CLR}} ${VALUE} ${ARROW} ${DIFF_STR} ${AGE} %{B-}${R}"
+    echo "${L}%{B${CLR}} %{T6}󹀀%{T-} ${VALUE} ${ARROW} ${DIFF_STR} ${AGE} %{B-}${R}"
 else
-    echo "${L}%{B${CLR}} ${VALUE} ${ARROW} ${DIFF_STR} %{B-}${R}"
+    echo "${L}%{B${CLR}} %{T6}󹀀%{T-} ${VALUE} ${ARROW} ${DIFF_STR} %{B-}${R}"
 fi
